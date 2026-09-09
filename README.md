@@ -1,4 +1,7 @@
 # Biscuit
+![AI Generated](https://img.shields.io/badge/AI-Generated-blue)
+⚠️ AI-Generated Code Notice
+Most of the code in this project was generated using AI tools (e.g., Claude, ChatGPT, etc.). Please review carefully before using in production, especially anything related to security.
 
 09/09/2026 - version `0.1.0-thai-media-ota15`
 Forked from [yattsu/biscuit](https://github.com/yattsu/biscuit). All core reading functionality comes from Biscuit.
@@ -84,10 +87,3 @@ The simplest way is to place the photo in one of the following locations:
 The system searches in the order listed above, or you can specify a custom path with the `photo=/path/to/photo.jpg` line in the config. BMP, JPG/JPEG, and PNG are supported, and JPG/PNG files are converted to a BMP cache on the MicroSD before rendering.
 
 A portrait-orientation photo is recommended, with an aspect ratio of approximately `9:11` or `180x220` pixels. If the photo is larger, it will be scaled down to fit the frame; the original file is not modified.
-
-
-
-![AI Generated](https://img.shields.io/badge/AI-Generated-blue)
-⚠️ AI-Generated Code Notice
-Most of the code in this project was generated using AI tools (e.g., Claude, ChatGPT, etc.)
-Please review carefully before using in production, especially anything related to security.
