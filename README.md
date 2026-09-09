@@ -1,10 +1,18 @@
-# biscuit.
+# Biscuit
+
+09/09/2026
+Forked from [yattsu/biscuit](https://github.com/yattsu/biscuit). All core reading functionality comes from Biscuit.
+Just added support for Thai font (PK Nakhon Sawan)
+
+--
 
 Custom firmware for the **Xteink X4** e-paper device. Turns a $70 e-ink reader into a smart device with wireless tools, security features, communication, games, and utilities — while keeping full e-reader functionality.
 
 Forked from [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader). All core reading functionality comes from CrossPoint. Biscuit builds on top of it.
 
 ![Dashboard](./docs/images/homescreen.jpeg)
+
+
 
 ## What is this
 
