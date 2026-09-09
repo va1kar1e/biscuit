@@ -8,10 +8,15 @@
 #include <JpegToBmpConverter.h>
 #include <PngToBmpConverter.h>
 
+#include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <cstring>
+#include <memory>
+#include <new>
 #include <string_view>
 
+#include "CrossPointSettings.h"
 #include "activities/reader/ReaderUtils.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
@@ -69,6 +74,42 @@ int naturalCompare(const std::string_view left, const std::string_view right) {
   if (leftPos == left.size() && rightPos == right.size()) return 0;
   return leftPos == left.size() ? -1 : 1;
 }
+
+uint32_t fnv1aUpdate(uint32_t hash, const uint8_t* data, const size_t length) {
+  for (size_t index = 0; index < length; index++) {
+    hash ^= data[index];
+    hash *= 16777619u;
+  }
+  return hash;
+}
+
+uint32_t sourceFingerprint(FsFile& source, const std::string_view path) {
+  uint32_t hash = fnv1aUpdate(2166136261u, reinterpret_cast<const uint8_t*>(path.data()), path.size());
+  const size_t sourceSize = source.fileSize();
+  hash = fnv1aUpdate(hash, reinterpret_cast<const uint8_t*>(&sourceSize), sizeof(sourceSize));
+
+  uint8_t sample[64];
+  source.seekSet(0);
+  const int headRead = source.read(sample, sizeof(sample));
+  if (headRead > 0) hash = fnv1aUpdate(hash, sample, static_cast<size_t>(headRead));
+
+  if (sourceSize > sizeof(sample)) {
+    source.seekSet(sourceSize - sizeof(sample));
+    const int tailRead = source.read(sample, sizeof(sample));
+    if (tailRead > 0) hash = fnv1aUpdate(hash, sample, static_cast<size_t>(tailRead));
+  }
+  source.seekSet(0);
+  return hash;
+}
+
+bool isValidBmpCache(const std::string& path) {
+  FsFile cache;
+  if (!Storage.openFileForRead("IMG", path, cache)) return false;
+  Bitmap bitmap(cache, true);
+  const bool valid = bitmap.parseHeaders() == BmpReaderError::Ok;
+  cache.close();
+  return valid;
+}
 }  // namespace
 
 BmpViewerActivity::BmpViewerActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::string path)
@@ -84,11 +125,6 @@ void BmpViewerActivity::showError(const char* message) {
 }
 
 bool BmpViewerActivity::prepareDisplayFile(std::string& displayPath) {
-  if (ownsCache && Storage.exists(IMAGE_CACHE_PATH)) {
-    Storage.remove(IMAGE_CACHE_PATH);
-    ownsCache = false;
-  }
-
   if (FsHelpers::hasBmpExtension(filePath)) {
     displayPath = filePath;
     return true;
@@ -99,20 +135,38 @@ bool BmpViewerActivity::prepareDisplayFile(std::string& displayPath) {
     return false;
   }
 
-  // The converters stream decoded rows to an SD-backed BMP. This avoids a
-  // second full-screen allocation on the ESP32-C3 and keeps peak heap bounded.
-  if (Storage.exists(IMAGE_CACHE_PATH)) {
-    Storage.remove(IMAGE_CACHE_PATH);
-  }
-
   FsFile source;
   if (!Storage.openFileForRead("IMG", filePath, source)) {
     LOG_ERR("IMG", "Could not open source image: %s", filePath.c_str());
     return false;
   }
 
+  // Keep a persistent, per-source BMP cache. The old implementation reused one
+  // temporary file and deleted it on every page turn, forcing JPG/PNG decoding
+  // each time the reader moved back to an image it had already displayed.
+  Storage.ensureDirectoryExists(IMAGE_CACHE_DIR);
+  const uint32_t fingerprint = sourceFingerprint(source, filePath);
+  char cacheName[96];
+  std::snprintf(cacheName, sizeof(cacheName), "%s/%08lx-%dx%d.bmp", IMAGE_CACHE_DIR,
+                static_cast<unsigned long>(fingerprint), renderer.getScreenWidth(), renderer.getScreenHeight());
+  const std::string cachePath{cacheName};
+
+  if (Storage.exists(cachePath.c_str())) {
+    if (isValidBmpCache(cachePath)) {
+      source.close();
+      displayPath = cachePath;
+      LOG_DBG("IMG", "Using cached image: %s", cachePath.c_str());
+      return true;
+    }
+    Storage.remove(cachePath.c_str());
+  }
+
+  // The converters stream decoded rows to an SD-backed BMP. This avoids a
+  // second full-screen allocation on the ESP32-C3 and keeps peak heap bounded.
+  const std::string temporaryPath = cachePath + ".tmp";
+  if (Storage.exists(temporaryPath.c_str())) Storage.remove(temporaryPath.c_str());
   FsFile cache;
-  if (!Storage.openFileForWrite("IMG", IMAGE_CACHE_PATH, cache)) {
+  if (!Storage.openFileForWrite("IMG", temporaryPath, cache)) {
     LOG_ERR("IMG", "Could not create image cache");
     source.close();
     return false;
@@ -132,12 +186,17 @@ bool BmpViewerActivity::prepareDisplayFile(std::string& displayPath) {
 
   if (!converted) {
     LOG_ERR("IMG", "Image conversion failed: %s", filePath.c_str());
-    Storage.remove(IMAGE_CACHE_PATH);
+    Storage.remove(temporaryPath.c_str());
     return false;
   }
 
-  displayPath = IMAGE_CACHE_PATH;
-  ownsCache = true;
+  if (!Storage.rename(temporaryPath.c_str(), cachePath.c_str())) {
+    LOG_ERR("IMG", "Could not finalize image cache: %s", cachePath.c_str());
+    Storage.remove(temporaryPath.c_str());
+    return false;
+  }
+
+  displayPath = cachePath;
   return true;
 }
 
@@ -198,10 +257,6 @@ bool BmpViewerActivity::findAdjacentImage(const bool forward, std::string& adjac
 }
 
 bool BmpViewerActivity::renderCurrentImage() {
-
-  Rect popupRect = GUI.drawPopup(renderer, tr(STR_LOADING_POPUP));
-  GUI.fillPopupProgress(renderer, popupRect, 20);  // Initial 20% progress
-
   std::string displayPath;
   if (!prepareDisplayFile(displayPath)) {
     showError("Could not decode image");
@@ -236,9 +291,7 @@ bool BmpViewerActivity::renderCurrentImage() {
         y = (pageHeight - bitmap.getHeight()) / 2;
       }
 
-      const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "<", ">");
-      GUI.fillPopupProgress(renderer, popupRect, 50);
-
+      const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SET_WALLPAPER), "<", ">");
       renderer.clearScreen();
       renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, 0, 0);
 
@@ -263,11 +316,71 @@ void BmpViewerActivity::onEnter() {
   renderCurrentImage();
 }
 
-void BmpViewerActivity::onExit() {
-  if (ownsCache && Storage.exists(IMAGE_CACHE_PATH)) {
-    Storage.remove(IMAGE_CACHE_PATH);
-    ownsCache = false;
+bool BmpViewerActivity::setCurrentAsWallpaper() {
+  constexpr const char* WALLPAPER_PATH = "/sleep.bmp";
+  constexpr const char* TEMP_WALLPAPER_PATH = "/.sleep-wallpaper.tmp";
+  constexpr size_t COPY_BUFFER_SIZE = 4096;
+
+  std::string displayPath;
+  if (!prepareDisplayFile(displayPath)) return false;
+
+  FsFile source;
+  if (!Storage.openFileForRead("IMG", displayPath, source)) return false;
+
+  if (Storage.exists(TEMP_WALLPAPER_PATH)) Storage.remove(TEMP_WALLPAPER_PATH);
+  FsFile destination;
+  if (!Storage.openFileForWrite("IMG", TEMP_WALLPAPER_PATH, destination)) {
+    source.close();
+    return false;
   }
+
+  auto buffer = std::unique_ptr<uint8_t[]>(new (std::nothrow) uint8_t[COPY_BUFFER_SIZE]);
+  bool copied = buffer != nullptr;
+  const size_t sourceSize = source.fileSize();
+  size_t copiedBytes = 0;
+  while (copied && copiedBytes < sourceSize) {
+    const size_t wanted = std::min(COPY_BUFFER_SIZE, sourceSize - copiedBytes);
+    const int bytesRead = source.read(buffer.get(), wanted);
+    if (bytesRead != static_cast<int>(wanted) || destination.write(buffer.get(), wanted) != wanted) {
+      copied = false;
+      break;
+    }
+    copiedBytes += wanted;
+  }
+  destination.flush();
+  destination.close();
+  source.close();
+
+  if (!copied) {
+    Storage.remove(TEMP_WALLPAPER_PATH);
+    return false;
+  }
+
+  if (Storage.exists(WALLPAPER_PATH)) Storage.remove(WALLPAPER_PATH);
+  if (!Storage.rename(TEMP_WALLPAPER_PATH, WALLPAPER_PATH)) {
+    Storage.remove(TEMP_WALLPAPER_PATH);
+    return false;
+  }
+
+  SETTINGS.sleepScreen = CrossPointSettings::SLEEP_SCREEN_MODE::CUSTOM;
+  if (!SETTINGS.saveToFile()) {
+    LOG_ERR("IMG", "Wallpaper saved but sleep-screen setting could not be persisted");
+    return false;
+  }
+  LOG_INF("IMG", "Wallpaper set from: %s", filePath.c_str());
+  return true;
+}
+
+bool BmpViewerActivity::preserveScreenOnSleep() const {
+  // A selected wallpaper uses the existing Custom sleep-screen pipeline. For
+  // other modes retain OTA6's behavior of pinning the currently viewed image.
+  return SETTINGS.sleepScreen != CrossPointSettings::SLEEP_SCREEN_MODE::CUSTOM;
+}
+
+void BmpViewerActivity::onExit() {
+  // Caches intentionally survive leaving the viewer so reopening an image is
+  // fast. Settings > Clear Cache removes the whole image cache directory.
+  if (Storage.exists(LEGACY_CACHE_PATH)) Storage.remove(LEGACY_CACHE_PATH);
   Activity::onExit();
   renderer.clearScreen();
   renderer.displayBuffer(HalDisplay::FAST_REFRESH);
@@ -279,6 +392,11 @@ void BmpViewerActivity::loop() {
 
   if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
     onGoHome();
+    return;
+  }
+
+  if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+    GUI.drawPopup(renderer, setCurrentAsWallpaper() ? tr(STR_WALLPAPER_SET) : tr(STR_WALLPAPER_FAILED));
     return;
   }
 

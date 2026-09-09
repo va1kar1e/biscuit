@@ -77,6 +77,7 @@
 #include "EmergencyActivity.h"
 #include "MeshChatActivity.h"
 #include "MedicalCardActivity.h"
+#include "IdCardActivity.h"
 #include "BulletinBoardActivity.h"
 #include "DeadDropActivity.h"
 #include "LootActivity.h"
@@ -104,7 +105,7 @@ static constexpr RadarNode kRadarNodes[8] = {
   {"OFFENSE",  21},
   {"DEFENSE",  12},
   {"COMMS",     5},
-  {"TOOLS",    32},
+  {"TOOLS",    33},
   {"GAMES",    11},
   {"READER",    5},
   {"SETTINGS",  7},
@@ -208,6 +209,7 @@ void AppsMenuActivity::loop() {
                 {"TOTP QR", "Show 2FA code as scannable QR", UIIcon::Image, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<QrTotpActivity>(r, m); }, false, []() -> bool { return Storage.exists("/biscuit/totp.dat"); }},
                 {tr(STR_PASSWORD_MANAGER), "Encrypted credentials on SD", UIIcon::Settings, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<PasswordManagerActivity>(r, m); }},
                 {"Medical Card", "Emergency medical info on screen", UIIcon::Text, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<MedicalCardActivity>(r, m); }},
+                {"ID Card", "Contact card, photo and wallpaper", UIIcon::Text, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<IdCardActivity>(r, m); }},
                 {"Stego Notes", "Hide text in BMP images", UIIcon::Image, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<SteganographyActivity>(r, m); }},
                 AppCategoryActivity::SectionHeader("NETWORK"),
                 {tr(STR_WIFI_SCANNER), "APs, signal, channels", UIIcon::Wifi, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<WifiScannerActivity>(r, m); }},
@@ -423,6 +425,7 @@ void AppsMenuActivity::loop() {
               {"TOTP QR", "Show 2FA code as scannable QR", UIIcon::Image, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<QrTotpActivity>(r, m); }, false, []() -> bool { return Storage.exists("/biscuit/totp.dat"); }},
               {tr(STR_PASSWORD_MANAGER), "Encrypted credentials on SD", UIIcon::Settings, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<PasswordManagerActivity>(r, m); }},
               {"Medical Card", "Emergency medical info on screen", UIIcon::Text, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<MedicalCardActivity>(r, m); }},
+              {"ID Card", "Contact card, photo and wallpaper", UIIcon::Text, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<IdCardActivity>(r, m); }},
               {"Stego Notes", "Hide text in BMP images", UIIcon::Image, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<SteganographyActivity>(r, m); }},
               AppCategoryActivity::SectionHeader("NETWORK"),
               {tr(STR_WIFI_SCANNER), "APs, signal, channels", UIIcon::Wifi, [](GfxRenderer& r, MappedInputManager& m) { return std::make_unique<WifiScannerActivity>(r, m); }},
@@ -669,7 +672,7 @@ void AppsMenuActivity::drawTile(int index, int x, int y, int w, int h, bool sele
     case 1: name = "OFFENSE";  subtitle = "Scan/profile/test";  appCount = 21; break;
     case 2: name = "DEFENSE";  subtitle = "Ghost & protect";    appCount = 12; break;
     case 3: name = "COMMS";    subtitle = "Chat & share";       appCount = 5;  break;
-    case 4: name = "TOOLS";    subtitle = "Utilities";          appCount = 32; break;
+    case 4: name = "TOOLS";    subtitle = "Utilities";          appCount = 33; break;
     case 5: name = "GAMES";    subtitle = "Entertainment";      appCount = 11; break;
     case 6: name = "READER";   subtitle = "Books & OPDS";       appCount = 5;  break;
     case 7: name = "SETTINGS"; subtitle = "System & config";    appCount = 7;  break;

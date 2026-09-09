@@ -26,6 +26,7 @@ class SdFirmwareUpdateActivity final : public Activity {
   size_t firmwareSize = 0;
   size_t writtenBytes = 0;
   std::string errorMessage;
+  std::string errorDetail;
 
   bool validateFirmware();
   void promptConfirmation();

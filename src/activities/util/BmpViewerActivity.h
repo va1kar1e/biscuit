@@ -13,16 +13,17 @@ class BmpViewerActivity final : public Activity {
   void onEnter() override;
   void onExit() override;
   void loop() override;
-  bool preserveScreenOnSleep() const override { return true; }
+  bool preserveScreenOnSleep() const override;
 
  private:
-  static constexpr const char* IMAGE_CACHE_PATH = "/.image-viewer-cache.bmp";
+  static constexpr const char* IMAGE_CACHE_DIR = "/.crosspoint/image_viewer";
+  static constexpr const char* LEGACY_CACHE_PATH = "/.image-viewer-cache.bmp";
 
   std::string filePath;
-  bool ownsCache = false;
 
   bool renderCurrentImage();
   bool prepareDisplayFile(std::string& displayPath);
   bool findAdjacentImage(bool forward, std::string& adjacentPath) const;
+  bool setCurrentAsWallpaper();
   void showError(const char* message);
 };
