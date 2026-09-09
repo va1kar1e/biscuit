@@ -9,6 +9,25 @@ The link below worked for me to update the firmware again: [Fix Bricked Xteink](
 
 ![UpdateFW](./docs/images/updateFW.jpg)
 
+```bash
+~$ sudo flashrom --programmer ch341a_spi -r backup_0.bin
+    [...]
+    Reading flash... done.
+~$ sudo flashrom --programmer ch341a_spi -r backup_1.bin
+    [...]
+    Reading flash... done.
+    # lets compare the hashes from the back ups
+~$ md5sum backup_0.bin
+    211522e56616ea46ac9bcf82d3451eb2  backup_0.bin
+~$ md5sum backup_1.bin
+    211522e56616ea46ac9bcf82d3451eb2  backup_1.bin
+~$ sudo flashrom --programmer ch341a_spi -w crosspoint_backup.bin
+    [...]
+    Reading old flash chip contents... done.
+    Erasing and writing flash chip... Erase/write done.
+    Verifying flash... VERIFIED.
+```
+
 After installing `crosspoint_backup.bin`, simply drag and drop the custom firmware file onto the root of the SD card, rename it to `update.bin`, then insert the SD card into the XTeink and hold **Power + Vol Up** until it boots into firmware upgrade mode
 
 --
