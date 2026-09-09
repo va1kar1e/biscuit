@@ -5,11 +5,11 @@ Forked from [yattsu/biscuit](https://github.com/yattsu/biscuit). All core readin
 
 ## Features
 
-- Read Thai-language EPUBs with the PK Nakhon Sawan font
-- Open BMP, JPG/JPEG, and PNG files from the File Browser
-- Update firmware via `/update.bin` at the root of the MicroSD
-- Send `update.bin` to the MicroSD through the File Transfer page over the network
-- Improved File Transfer stability: disables Wi-Fi sleep, enables auto-reconnect, and waits for the connection to recover from brief drops before leaving the page
+- [Added] Read Thai-language EPUBs with the PK Nakhon Sawan font
+- [Added] Open BMP, JPG/JPEG, and PNG files from the File Browser
+- [Fixed] Update firmware via `/update.bin` at the root of the MicroSD
+- [Fixed] Send `update.bin` to the MicroSD through the File Transfer page over the network
+- [Fixed] Improved File Transfer stability: disables Wi-Fi sleep, enables auto-reconnect, and waits for the connection to recover from brief drops before leaving the page
 
 ⚠️ **Note:** After installing Biscuit, I found that my device could no longer be updated due to a USB Lock (burnt eFuse).
 The link below worked for me to update the firmware again: [Fix Bricked Xteink](https://github.com/paulporto/crosspoint-reader/blob/develop/docs/fix-bricked-xteink.md)
