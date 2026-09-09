@@ -187,7 +187,12 @@ void enterDeepSleep() {
   APP_STATE.lastSleepFromReader = activityManager.isReaderActivity();
   APP_STATE.saveToFile();
 
-  activityManager.goToSleep();
+  // E-paper keeps the current pixels without power. The image viewer uses
+  // this path so Power acts like "pin this image" instead of drawing the
+  // configured sleep screen over it.
+  if (!activityManager.preserveScreenOnSleep()) {
+    activityManager.goToSleep();
+  }
 
   display.deepSleep();
   LOG_DBG("MAIN", "Entering deep sleep");

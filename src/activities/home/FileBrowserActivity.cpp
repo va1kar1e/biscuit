@@ -93,10 +93,11 @@ void FileBrowserActivity::loadFiles() {
       files.emplace_back(std::string(name) + "/");
     } else {
       std::string_view filename{name};
-      if (FsHelpers::hasEpubExtension(filename) || FsHelpers::hasXtcExtension(filename) ||
-          FsHelpers::hasTxtExtension(filename) || FsHelpers::hasMarkdownExtension(filename) ||
-          FsHelpers::hasBmpExtension(filename) || FsHelpers::hasJpgExtension(filename) ||
-          FsHelpers::hasPngExtension(filename)) {
+      const bool isImage = FsHelpers::hasBmpExtension(filename) || FsHelpers::hasJpgExtension(filename) ||
+                           FsHelpers::hasPngExtension(filename);
+      if (isImage || (!imagesOnly &&
+                      (FsHelpers::hasEpubExtension(filename) || FsHelpers::hasXtcExtension(filename) ||
+                       FsHelpers::hasTxtExtension(filename) || FsHelpers::hasMarkdownExtension(filename)))) {
         files.emplace_back(filename);
       }
     }
@@ -257,7 +258,9 @@ void FileBrowserActivity::render(RenderLock&&) {
   const auto pageHeight = renderer.getScreenHeight();
   const auto& metrics = UITheme::getInstance().getMetrics();
 
-  std::string folderName = (basepath == "/") ? tr(STR_SD_CARD) : basepath.substr(basepath.rfind('/') + 1);
+  std::string folderName =
+      (imagesOnly && basepath == "/") ? "Image Viewer"
+                                      : ((basepath == "/") ? tr(STR_SD_CARD) : basepath.substr(basepath.rfind('/') + 1));
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.headerHeight}, folderName.c_str());
 
   const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;

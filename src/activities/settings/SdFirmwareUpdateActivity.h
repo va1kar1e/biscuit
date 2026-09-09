@@ -25,7 +25,6 @@ class SdFirmwareUpdateActivity final : public Activity {
   bool detectedAtBoot = false;
   size_t firmwareSize = 0;
   size_t writtenBytes = 0;
-  unsigned int lastRenderedPercent = 101;
   std::string errorMessage;
 
   bool validateFirmware();
@@ -33,5 +32,6 @@ class SdFirmwareUpdateActivity final : public Activity {
   void onConfirmationResult(const ActivityResult& result);
   void performUpdate();
   void fail(const char* message);
+  void failWithDetail(const char* message, const char* detail);
   void leaveUpdater();
 };

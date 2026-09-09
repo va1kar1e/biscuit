@@ -13,6 +13,7 @@ class BmpViewerActivity final : public Activity {
   void onEnter() override;
   void onExit() override;
   void loop() override;
+  bool preserveScreenOnSleep() const override { return true; }
 
  private:
   static constexpr const char* IMAGE_CACHE_PATH = "/.image-viewer-cache.bmp";
@@ -20,6 +21,8 @@ class BmpViewerActivity final : public Activity {
   std::string filePath;
   bool ownsCache = false;
 
+  bool renderCurrentImage();
   bool prepareDisplayFile(std::string& displayPath);
+  bool findAdjacentImage(bool forward, std::string& adjacentPath) const;
   void showError(const char* message);
 };

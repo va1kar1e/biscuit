@@ -20,7 +20,6 @@
 namespace {
 constexpr size_t MIN_FIRMWARE_SIZE = 1024;
 constexpr size_t WRITE_BUFFER_SIZE = 4096;
-constexpr unsigned int PROGRESS_STEP_PERCENT = 5;
 }  // namespace
 
 void SdFirmwareUpdateActivity::onEnter() {
@@ -80,7 +79,6 @@ void SdFirmwareUpdateActivity::onConfirmationResult(const ActivityResult& result
 
   state = State::UPDATING;
   writtenBytes = 0;
-  lastRenderedPercent = 101;
   requestUpdateAndWait();
   performUpdate();
 }
@@ -110,7 +108,8 @@ void SdFirmwareUpdateActivity::performUpdate() {
   esp_err_t result = esp_ota_begin(destination, firmwareSize, &handle);
   if (result != ESP_OK) {
     LOG_ERR("FW", "esp_ota_begin failed: %s", esp_err_to_name(result));
-    fail(tr(STR_FIRMWARE_WRITE_FAILED));
+    file.close();
+    failWithDetail(tr(STR_FIRMWARE_WRITE_FAILED), esp_err_to_name(result));
     return;
   }
 
@@ -120,6 +119,7 @@ void SdFirmwareUpdateActivity::performUpdate() {
     const int bytesRead = file.read(buffer.get(), wanted);
     if (bytesRead <= 0) {
       LOG_ERR("FW", "Unexpected end of update file");
+      result = ESP_ERR_INVALID_SIZE;
       writeFailed = true;
       break;
     }
@@ -132,31 +132,33 @@ void SdFirmwareUpdateActivity::performUpdate() {
     }
 
     writtenBytes += static_cast<size_t>(bytesRead);
-    const unsigned int percent = static_cast<unsigned int>((writtenBytes * 100) / firmwareSize);
-    if (lastRenderedPercent == 101 || percent >= lastRenderedPercent + PROGRESS_STEP_PERCENT || percent == 100) {
-      lastRenderedPercent = percent;
-      requestUpdate(true);
-    }
+    // Do not refresh the e-paper panel while streaming from MicroSD. On the X4
+    // those operations contend for hardware resources; refreshing here can
+    // interrupt the SD read and leave the OTA image incomplete. The updating
+    // screen drawn before this loop remains visible until completion.
     delay(1);
   }
 
   if (writeFailed) {
     esp_ota_abort(handle);
-    fail(tr(STR_FIRMWARE_WRITE_FAILED));
+    file.close();
+    failWithDetail(tr(STR_FIRMWARE_WRITE_FAILED), esp_err_to_name(result));
     return;
   }
 
   result = esp_ota_end(handle);
   if (result != ESP_OK) {
     LOG_ERR("FW", "esp_ota_end rejected image: %s", esp_err_to_name(result));
-    fail(tr(STR_INVALID_FIRMWARE));
+    file.close();
+    failWithDetail(tr(STR_INVALID_FIRMWARE), esp_err_to_name(result));
     return;
   }
 
   result = esp_ota_set_boot_partition(destination);
   if (result != ESP_OK) {
     LOG_ERR("FW", "Could not select OTA partition: %s", esp_err_to_name(result));
-    fail(tr(STR_FIRMWARE_WRITE_FAILED));
+    file.close();
+    failWithDetail(tr(STR_FIRMWARE_WRITE_FAILED), esp_err_to_name(result));
     return;
   }
 
@@ -177,6 +179,17 @@ void SdFirmwareUpdateActivity::performUpdate() {
 
 void SdFirmwareUpdateActivity::fail(const char* message) {
   errorMessage = message;
+  state = State::FAILED;
+  requestUpdate();
+}
+
+void SdFirmwareUpdateActivity::failWithDetail(const char* message, const char* detail) {
+  errorMessage = message;
+  if (detail && detail[0] != '\0') {
+    errorMessage += " (";
+    errorMessage += detail;
+    errorMessage += ")";
+  }
   state = State::FAILED;
   requestUpdate();
 }
@@ -234,5 +247,7 @@ void SdFirmwareUpdateActivity::render(RenderLock&&) {
     GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
   }
 
+  // Render this once before flash writing starts. No redraw is requested while
+  // MicroSD is being read, so the panel and SD never contend during the write.
   renderer.displayBuffer(HalDisplay::FULL_REFRESH);
 }

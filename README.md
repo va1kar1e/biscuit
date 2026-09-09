@@ -1,6 +1,6 @@
 # Biscuit
 
-09/09/2026 - version `0.1.0-thai-media-ota2`
+09/09/2026 - version `0.1.0-thai-media-ota6`
 Forked from [yattsu/biscuit](https://github.com/yattsu/biscuit). All core reading functionality comes from Biscuit.
 
 ## Features
@@ -44,3 +44,12 @@ Backup file [crosspoint_backup.bin](./docs/crosspoint_spiflash_backup.tar.xz)
 After installing `crosspoint_backup.bin`, simply drag and drop the custom firmware file onto the root of the SD card, rename it to `update.bin`, then insert the SD card into the XTeink and hold **Power + Vol Up** until it boots into firmware upgrade mode
 
 
+## Generating Images from PDF
+
+The `pdf_to_img_x4.py` script accepts multiple PDF files, splits each page into 4 parts in manga reading order, and generates 480x800 BMP images:
+
+```bash
+python pdf_to_img_x4.py volume1.pdf volume2.pdf -o output
+```
+
+Copy the resulting folder to the MicroSD, open the first image, then use the Page Forward / Page Back buttons to continue reading seamlessly.
