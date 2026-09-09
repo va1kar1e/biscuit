@@ -1,6 +1,6 @@
 # Biscuit
 
-09/09/2026 - version `0.1.0-thai-media-ota6`
+09/09/2026 - version `0.1.0-thai-media-ota15`
 Forked from [yattsu/biscuit](https://github.com/yattsu/biscuit). All core reading functionality comes from Biscuit.
 
 ## Features
@@ -9,6 +9,7 @@ Forked from [yattsu/biscuit](https://github.com/yattsu/biscuit). All core readin
 - [Added] Open BMP, JPG/JPEG, and PNG files from the File Browser
 - [Added] `Tools > Image Viewer` for browsing only BMP, JPG/JPEG, and PNG files on the MicroSD
 - [Added] Supports entering subfolders, with images in each folder sorted using natural sort order
+- [Added] `Home > Tools > ID Card` for viewing ID card information. Configuration is stored at `/biscuit/id_card.txt` as UTF-8 plain text. See the format below.
 - [Fixed] Update firmware via `/update.bin` at the root of the MicroSD
 - [Fixed] Send `update.bin` to the MicroSD through the File Transfer page over the network
 - [Fixed] Improved File Transfer stability: disables Wi-Fi sleep, enables auto-reconnect, and waits for the connection to recover from brief drops before leaving the page
@@ -53,3 +54,33 @@ python pdf_to_img_x4.py volume1.pdf volume2.pdf -o output
 ```
 
 Copy the resulting folder to the MicroSD, open the first image, then use the Page Forward / Page Back buttons to continue reading seamlessly.
+
+
+## Example config อยู่ใน `id_card.txt`
+
+```text
+# Biscuit ID Card (UTF-8)
+first_name=John
+last_name=Doe
+phone=081-234-5678
+email=johnd1@example.com
+company=Example
+company_id=AX12345
+company_email=john.d@example.com
+company_position=Engineer
+department=Data
+photo=/biscuit/id_photo.bmp
+```
+
+### Portrait Photo
+
+The simplest way is to place the photo in one of the following locations:
+
+1. `/biscuit/id_photo.bmp`
+2. `/biscuit/id_photo.jpg`
+3. `/biscuit/id_photo.jpeg`
+4. `/biscuit/id_photo.png`
+
+The system searches in the order listed above, or you can specify a custom path with the `photo=/path/to/photo.jpg` line in the config. BMP, JPG/JPEG, and PNG are supported, and JPG/PNG files are converted to a BMP cache on the MicroSD before rendering.
+
+A portrait-orientation photo is recommended, with an aspect ratio of approximately `9:11` or `180x220` pixels. If the photo is larger, it will be scaled down to fit the frame; the original file is not modified.

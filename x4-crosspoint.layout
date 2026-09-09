@@ -1,0 +1,5 @@
+# Xteink X4 / CrossPoint 16 MB layout verified from crosspoint_backup.bin.
+# End addresses are inclusive, as required by flashrom.
+0000e000:0000ffff otadata
+00010000:0064ffff app0
+00650000:00c8ffff app1

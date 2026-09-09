@@ -1,0 +1,11 @@
+# Biscuit ID Card (UTF-8)
+first_name=John
+last_name=Doe
+phone=081-234-5678
+email=johnd1@example.com
+company=Example
+company_id=AX12345
+company_email=john.d@example.com
+company_position=Engineer
+department=Data
+photo=/biscuit/id_photo.bmp
