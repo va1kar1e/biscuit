@@ -28,6 +28,8 @@ The link below worked for me to update the firmware again: [Fix Bricked Xteink](
     Verifying flash... VERIFIED.
 ```
 
+Backup file [crosspoint_backup.bin](./docs/crosspoint_spiflash_backup.tar.xz)
+
 After installing `crosspoint_backup.bin`, simply drag and drop the custom firmware file onto the root of the SD card, rename it to `update.bin`, then insert the SD card into the XTeink and hold **Power + Vol Up** until it boots into firmware upgrade mode
 
 --
