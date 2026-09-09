@@ -4,6 +4,13 @@
 Forked from [yattsu/biscuit](https://github.com/yattsu/biscuit). All core reading functionality comes from Biscuit.
 Just added support for Thai font (PK Nakhon Sawan)
 
+⚠️ **Note:** After installing Biscuit, I found that my device could no longer be updated due to a USB Lock (burnt eFuse).
+The link below worked for me to update the firmware again: [Fix Bricked Xteink](https://github.com/paulporto/crosspoint-reader/blob/develop/docs/fix-bricked-xteink.md)
+
+![UpdateFW](./docs/images/updateFW.jpg)
+
+After installing `crosspoint_backup.bin`, simply drag and drop the custom firmware file onto the root of the SD card, rename it to `update.bin`, then insert the SD card into the XTeink and hold **Power + Vol Up** until it boots into firmware upgrade mode
+
 --
 
 Custom firmware for the **Xteink X4** e-paper device. Turns a $70 e-ink reader into a smart device with wireless tools, security features, communication, games, and utilities — while keeping full e-reader functionality.
@@ -13,6 +20,7 @@ Forked from [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-
 ![Dashboard](./docs/images/homescreen.jpeg)
 
 
+https://github.com/paulporto/crosspoint-reader/blob/develop/docs/fix-bricked-xteink.md
 
 ## What is this
 
